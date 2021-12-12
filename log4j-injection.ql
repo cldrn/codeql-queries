@@ -16,11 +16,17 @@ import semmle.code.java.dataflow.FlowSources
 class Log4jCall extends MethodAccess {
   Log4jCall() {
     exists(RefType t, Method m |
-      t.hasQualifiedName("org.apache.log4j", ["Category", "Logger", "LogBuilder"]) or // Log4j v1
-      t.hasQualifiedName("org.apache.logging.log4j", ["Logger", "LogBuilder", "LoggerManager"]) or // Log4j v2 or
-      t.hasQualifiedName("org.apache.logging.log4j.core", ["Logger", "LogBuilder", "LoggerManager"]) or // Log4j v2 
+      t.hasQualifiedName("org.apache.log4j", ["Category", "Logger", "LogBuilder"]) // Log4j v1
+      or
+      t.hasQualifiedName("org.apache.logging.log4j", ["Logger", "LogBuilder", "LoggerManager"]) // Log4j v2 or
+      or
+      t.hasQualifiedName("org.apache.logging.log4j.core", ["Logger", "LogBuilder", "LoggerManager"]) // Log4j v2
+      or
       t.hasQualifiedName("org.apache.logging.log4j.status", "StatusLogger") // Log4j Status logger
-      |
+      or
+      t.hasQualifiedName("org.slf4j", ["Logger", "LoggingEventBuilder"]) and // SLF4J Logger is used when Log4j core is on classpath
+      log4JJarCoreJarFilePresent()
+    |
       (
         m.getDeclaringType().getASourceSupertype*() = t or
         m.getDeclaringType().extendsOrImplements*(t)
@@ -49,6 +55,10 @@ private class Log4JInjectionConfiguration extends TaintTracking::Configuration {
     node.getType() instanceof BoxedType or node.getType() instanceof PrimitiveType
   }
 }
+
+predicate log4JJCoreJarFile(JarFile file) { file.getBaseName().matches("%log4j-core%") }
+
+predicate log4JJarCoreJarFilePresent() { log4JJCoreJarFile(_) }
 
 from Log4JInjectionConfiguration cfg, DataFlow::PathNode source, DataFlow::PathNode sink
 where cfg.hasFlowPath(source, sink)
