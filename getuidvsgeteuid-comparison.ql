@@ -1,6 +1,6 @@
 import cpp
 
-from FunctionCall fcall, Assignment a, Variable v, EqualsExpr eq
+from FunctionCall fcall, Assignment a, Variable v, EqualsExpr eq, FunctionCall gid, FunctionCall egid
 where 
   (
     (
@@ -20,5 +20,10 @@ where
       eq.getLeftOperand().(VariableAccess).getTarget() = v and
       eq.getRightOperand().(VariableAccess).getTarget().getName() = "getuid"
     )
+  ) and not (
+    gid.getTarget().hasName("getgid") and
+    egid.getTarget().hasName("getegid") and
+    eq.getAChild*() = gid and
+    eq.getAChild*() = egid
   )
 select eq, "Detected comparison of getuid() and geteuid() results."
